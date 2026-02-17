@@ -1,0 +1,9 @@
+## Interface: 120001
+## Title: Jar's Easy Tracker
+## Notes: Mini WeakAuras-style tracker for icons and progress bars
+## Author: Jar
+## Version: 1.0.0
+## SavedVariablesPerCharacter: JarsEasyTrackerCharDB
+## SavedVariables: JarsEasyTrackerDB
+
+JarsEasyTracker.lua
