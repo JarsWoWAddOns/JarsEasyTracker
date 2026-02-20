@@ -8,6 +8,22 @@
 JarsEasyTrackerCharDB = JarsEasyTrackerCharDB or {}
 JarsEasyTrackerDB = JarsEasyTrackerDB or {}
 
+-- Modern UI Color Palette
+local UI_PALETTE = {
+    bg = {0.10, 0.10, 0.12, 0.95},
+    header = {0.15, 0.15, 0.18, 1},
+    accent = {0.30, 0.75, 0.75, 1},
+    text = {0.95, 0.95, 0.95, 1},
+    textDim = {0.70, 0.70, 0.70, 1},
+    border = {0.20, 0.20, 0.22, 1},
+}
+
+local modernBackdrop = {
+    bgFile = "Interface\\Buttons\\WHITE8X8",
+    edgeFile = "Interface\\Buttons\\WHITE8X8",
+    edgeSize = 1,
+}
+
 local displayFrames = {}
 local groupFrames = {}
 local elementStates = {}
@@ -750,7 +766,9 @@ local function CreateIconDisplay(element)
         local point, _, _, x, y = self:GetPoint()
         local elem = FindElementById(self.elementId)
         if elem then
-            elem.position = { point = point, x = x, y = y }
+            elem.position.point = point
+            elem.position.x = x
+            elem.position.y = y
             if self.moverOverlay and self.moverOverlay:IsShown() then
                 self.moverOverlay:UpdateCoords(x, y)
             end
@@ -1068,7 +1086,9 @@ local function CreateBarDisplay(element)
         local point, _, _, x, y = self:GetPoint()
         local elem = FindElementById(self.elementId)
         if elem then
-            elem.position = { point = point, x = x, y = y }
+            elem.position.point = point
+            elem.position.x = x
+            elem.position.y = y
             if self.moverOverlay and self.moverOverlay:IsShown() then
                 self.moverOverlay:UpdateCoords(x, y)
             end
@@ -1311,7 +1331,9 @@ local function CreateGroupContainer(group)
         local point, _, _, x, y = self:GetPoint()
         local grp = FindGroupById(self.groupId)
         if grp then
-            grp.position = { point = point, x = x, y = y }
+            grp.position.point = point
+            grp.position.x = x
+            grp.position.y = y
             if self.moverOverlay and self.moverOverlay:IsShown() then
                 self.moverOverlay:UpdateCoords(x, y)
             end
@@ -1852,13 +1874,113 @@ local function ShowSpellSearchDialog(callback)
 end
 
 --------------------------------------------------------------------------------
+-- Modern UI Helper Functions
+--------------------------------------------------------------------------------
+
+local function CreateModernSlider(parent, label, minVal, maxVal, step, getValue, setValue)
+    local slider = CreateFrame("Slider", nil, parent, "MinimalSliderTemplate")
+    slider:SetSize(200, 18)
+    slider:SetMinMaxValues(minVal, maxVal)
+    slider:SetValueStep(step)
+    slider:SetObeyStepOnDrag(true)
+    
+    local bg = slider:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(0.05, 0.05, 0.05, 0.8)
+    
+    local fill = slider:CreateTexture(nil, "ARTWORK")
+    fill:SetHeight(4)
+    fill:SetPoint("LEFT")
+    fill:SetColorTexture(UI_PALETTE.accent[1], UI_PALETTE.accent[2], UI_PALETTE.accent[3], 0.6)
+    slider.fill = fill
+    
+    slider:SetThumbTexture("Interface\\Buttons\\WHITE8X8")
+    local thumb = slider:GetThumbTexture()
+    thumb:SetSize(14, 14)
+    thumb:SetColorTexture(UI_PALETTE.accent[1], UI_PALETTE.accent[2], UI_PALETTE.accent[3], 1)
+    
+    local labelText = slider:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    labelText:SetPoint("BOTTOM", slider, "TOP", 0, 4)
+    labelText:SetTextColor(UI_PALETTE.text[1], UI_PALETTE.text[2], UI_PALETTE.text[3])
+    slider.label = labelText
+    
+    local function updateLabel()
+        local value = getValue()
+        labelText:SetText(label .. ": " .. value)
+        local pct = (value - minVal) / (maxVal - minVal)
+        fill:SetWidth(slider:GetWidth() * pct)
+    end
+    
+    slider:SetScript("OnValueChanged", function(self, value)
+        setValue(value)
+        updateLabel()
+    end)
+    
+    updateLabel()
+    return slider
+end
+
+local function CreateModernCheck(parent, label, getValue, setValue)
+    local check = CreateFrame("CheckButton", nil, parent)
+    check:SetSize(18, 18)
+    
+    local bg = check:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(0.05, 0.05, 0.05, 0.9)
+    
+    local border = check:CreateTexture(nil, "BORDER")
+    border:SetPoint("TOPLEFT", -1, 1)
+    border:SetPoint("BOTTOMRIGHT", 1, -1)
+    border:SetColorTexture(UI_PALETTE.border[1], UI_PALETTE.border[2], UI_PALETTE.border[3], 1)
+    
+    local checkTex = check:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    checkTex:SetPoint("CENTER", 0, 0)
+    checkTex:SetText("✓")
+    checkTex:SetTextColor(UI_PALETTE.accent[1], UI_PALETTE.accent[2], UI_PALETTE.accent[3], 1)
+    check.checkTex = checkTex
+    
+    local labelText = check:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    labelText:SetPoint("LEFT", check, "RIGHT", 8, 0)
+    labelText:SetText(label)
+    labelText:SetTextColor(UI_PALETTE.text[1], UI_PALETTE.text[2], UI_PALETTE.text[3])
+    check.text = labelText
+    
+    local function updateCheck()
+        checkTex:SetShown(getValue())
+    end
+    
+    check:SetScript("OnClick", function()
+        setValue(not getValue())
+        updateCheck()
+    end)
+    
+    updateCheck()
+    return check
+end
+
+local function CreateSectionHeader(parent, text)
+    local header = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    header:SetTextColor(UI_PALETTE.accent[1], UI_PALETTE.accent[2], UI_PALETTE.accent[3], 1)
+    header:SetText(text:upper())
+    
+    local line = parent:CreateTexture(nil, "ARTWORK")
+    line:SetHeight(1)
+    line:SetPoint("LEFT", header, "RIGHT", 8, 0)
+    line:SetColorTexture(UI_PALETTE.accent[1], UI_PALETTE.accent[2], UI_PALETTE.accent[3], 0.3)
+    line:SetWidth(100)
+    
+    header.line = line
+    return header
+end
+
+--------------------------------------------------------------------------------
 -- Section 14-17: Config UI
 --------------------------------------------------------------------------------
 
 local function CreateConfigWindow()
     if configFrame then return configFrame end
 
-    configFrame = CreateFrame("Frame", "JET_ConfigFrame", UIParent, "BasicFrameTemplateWithInset")
+    configFrame = CreateFrame("Frame", "JET_ConfigFrame", UIParent, "BackdropTemplate")
     configFrame:SetSize(720, 620)
     configFrame:SetPoint("CENTER")
     configFrame:SetMovable(true)
@@ -1868,24 +1990,57 @@ local function CreateConfigWindow()
     configFrame:SetScript("OnDragStop", configFrame.StopMovingOrSizing)
     configFrame:SetFrameStrata("DIALOG")
     configFrame:SetScale(JarsEasyTrackerCharDB.configScale or 1.0)
-
-    -- Fix close button for WoW 12.0 panel system
-    if configFrame.CloseButton then
-        configFrame.CloseButton:SetScript("OnClick", function(self)
-            self:GetParent():Hide()
-        end)
-    end
-
-    configFrame.title = configFrame:CreateFontString(nil, "OVERLAY")
-    configFrame.title:SetFontObject("GameFontHighlight")
-    configFrame.title:SetPoint("LEFT", configFrame.TitleBg, "LEFT", 5, 0)
+    
+    -- Modern background
+    configFrame:SetBackdrop(modernBackdrop)
+    configFrame:SetBackdropColor(unpack(UI_PALETTE.bg))
+    configFrame:SetBackdropBorderColor(unpack(UI_PALETTE.border))
+    
+    -- Title bar with teal accent
+    local titleBar = configFrame:CreateTexture(nil, "OVERLAY")
+    titleBar:SetPoint("TOPLEFT", 1, -1)
+    titleBar:SetPoint("TOPRIGHT", -1, -1)
+    titleBar:SetHeight(32)
+    titleBar:SetColorTexture(UI_PALETTE.header[1], UI_PALETTE.header[2], UI_PALETTE.header[3], UI_PALETTE.header[4])
+    
+    local titleAccent = configFrame:CreateTexture(nil, "OVERLAY")
+    titleAccent:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 0, 0)
+    titleAccent:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", 0, 0)
+    titleAccent:SetHeight(2)
+    titleAccent:SetColorTexture(UI_PALETTE.accent[1], UI_PALETTE.accent[2], UI_PALETTE.accent[3], UI_PALETTE.accent[4])
+    
+    configFrame.title = configFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    configFrame.title:SetPoint("TOP", titleBar, "TOP", 0, -8)
     configFrame.title:SetText("Jar's Easy Tracker")
+    configFrame.title:SetTextColor(UI_PALETTE.text[1], UI_PALETTE.text[2], UI_PALETTE.text[3])
+    
+    -- Modern close button
+    local closeBtn = CreateFrame("Button", nil, configFrame)
+    closeBtn:SetSize(20, 20)
+    closeBtn:SetPoint("TOPRIGHT", -6, -6)
+    closeBtn:SetNormalTexture("Interface\\AddOns\\JarsEasyTracker\\Assets\\close")
+    closeBtn:SetHighlightTexture("Interface\\AddOns\\JarsEasyTracker\\Assets\\close")
+    closeBtn:GetHighlightTexture():SetAlpha(0.3)
+    local closeBtnBg = closeBtn:CreateTexture(nil, "BACKGROUND")
+    closeBtnBg:SetAllPoints()
+    closeBtnBg:SetColorTexture(0.05, 0.05, 0.05, 0.8)
+    local closeBtnText = closeBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    closeBtnText:SetPoint("CENTER", 0, 1)
+    closeBtnText:SetText("✕")
+    closeBtnText:SetTextColor(UI_PALETTE.textDim[1], UI_PALETTE.textDim[2], UI_PALETTE.textDim[3])
+    closeBtn:SetScript("OnEnter", function(self)
+        closeBtnText:SetTextColor(UI_PALETTE.accent[1], UI_PALETTE.accent[2], UI_PALETTE.accent[3])
+    end)
+    closeBtn:SetScript("OnLeave", function(self)
+        closeBtnText:SetTextColor(UI_PALETTE.textDim[1], UI_PALETTE.textDim[2], UI_PALETTE.textDim[3])
+    end)
+    closeBtn:SetScript("OnClick", function() configFrame:Hide() end)
 
     ---------------------------------------------------------------------------
     -- Left Panel (200px) — Element List
     ---------------------------------------------------------------------------
     local leftPanel = CreateFrame("Frame", nil, configFrame)
-    leftPanel:SetPoint("TOPLEFT", configFrame, "TOPLEFT", 8, -28)
+    leftPanel:SetPoint("TOPLEFT", configFrame, "TOPLEFT", 8, -40)
     leftPanel:SetPoint("BOTTOMLEFT", configFrame, "BOTTOMLEFT", 8, 45)
     leftPanel:SetWidth(195)
 
@@ -3837,6 +3992,17 @@ end
 --------------------------------------------------------------------------------
 -- Section 18: Slash Commands
 --------------------------------------------------------------------------------
+
+-- Global entry point for external launchers (e.g. JarsAddonConfig)
+function JarsEasyTracker_OpenConfig()
+    local frame = CreateConfigWindow()
+    if frame:IsShown() then
+        frame:Hide()
+    else
+        RefreshLeftPanel()
+        frame:Show()
+    end
+end
 
 SLASH_JARSEASYTRACKER1 = "/jtrack"
 SLASH_JARSEASYTRACKER2 = "/jet"
